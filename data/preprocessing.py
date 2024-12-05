@@ -36,30 +36,344 @@ def filter_threshold(df, threshold=1000, target='receive_amount'):
 
     return result
 
+pd.set_option('display.max_columns', None)
+test_df = pd.read_csv('data/transaction/test.csv')
+test_df['block_datetime'] = test_df['block_timestamp'].apply(lambda x: x[:-4])
 
-# target = 'data/transaction/bitcoin_big_transaction_raw/transactions_000000000040.csv'
+# 2015년 1월 1일부터 2024년 11월 19일까지의 시간(초)를 인덱스로 가지는 DataFrame 생성
+time_range = pd.date_range(start='2021-10-01', end='2021-11-01', freq='S').astype(str)
+time_range = time_range.to_frame(index=False)
+time_range.columns = ['block_datetime']
 
-# df = pd.read_csv(target, header=None)
-# df.columns = column_names
-
-# # block_timestamp을 datetime으로 변환 후 날짜만 추출
-# df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-# df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
-
-# df = filter_one_sender(df)
-# df = filter_not_loop(df)
-# df = filter_threshold(df, threshold=1000, target='send_amount')
-
-# pd.set_option('display.max_columns', None)
-# print(df)
+# 날짜별로 데이터 집계
+aggregated = test_df.groupby('block_datetime').agg(
+    transaction_count=('transaction_hash', 'nunique'),
+    transaction_amount=('receive_amount', 'sum')
+).reset_index()
 
 
-# # print(df['block_date'].unique())
+result_df = time_range.merge(aggregated, left_on='block_datetime', right_on='block_datetime', how='left')
+result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+result_df = result_df.iloc[:-1, :]
 
+result_df.to_csv('data/test_target.csv', index=False)
+
+
+# # # target = 'data/transaction/bitcoin_big_transaction_raw/transactions_000000000040.csv'
+
+# # # df = pd.read_csv(target, header=None)
+# # # df.columns = column_names
+
+# # # # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# # # df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# # # df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # df = filter_one_sender(df)
+# # # df = filter_not_loop(df)
+# # # df = filter_threshold(df, threshold=1000, target='send_amount')
+
+# # # pd.set_option('display.max_columns', None)
+# # # print(df)
+
+
+# # # # print(df['block_date'].unique())
+
+
+# # # dfs = []
+
+# # # #### 1000 BTC 이상의 거래
+# # # for i in interval:
+# # #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+# # #     df = pd.read_csv(target, header=None)
+# # #     df.columns = column_names
+
+# # #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# # #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# # #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+
+# # # # 모든 데이터프레임을 하나로 결합
+# # # full_df = pd.concat(dfs, ignore_index=True)
+
+# # # # 날짜별로 데이터 집계
+# # # aggregated = full_df.groupby('block_date').agg(
+# # #     transaction_count=('transaction_hash', 'nunique'),
+# # #     transaction_amount=('receive_amount', 'sum')
+# # # ).reset_index()
+
+# # # # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# # # date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# # # date_range = date_range.to_frame(index=False)
+# # # date_range.columns = ['date']
+
+# # # # 날짜 범위 데이터프레임 생성
+# # # date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# # # date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # # 병합 및 누락된 값 채우기
+# # # result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# # # result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# # # result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+
+
+# # # # 결과 열 추가
+# # # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+
+# # # # CSV로 저장
+# # # result_df.to_csv('data/over_1000btc_result.csv', index=False)
+
+
+
+# # dfs = []
+
+# # #### 1000 BTC 이상, one sender filter의 거래
+# # for i in interval:
+# #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+# #     df = pd.read_csv(target, header=None)
+# #     df.columns = column_names
+
+# #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# #     df = filter_one_sender(df)
+
+# #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+
+# # # 모든 데이터프레임을 하나로 결합
+# # full_df = pd.concat(dfs, ignore_index=True)
+
+# # # 날짜별로 데이터 집계
+# # aggregated = full_df.groupby('block_date').agg(
+# #     transaction_count=('transaction_hash', 'nunique'),
+# #     transaction_amount=('receive_amount', 'sum')
+# # ).reset_index()
+
+# # # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# # date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# # date_range = date_range.to_frame(index=False)
+# # date_range.columns = ['date']
+
+# # # 날짜 범위 데이터프레임 생성
+# # date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# # date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # 병합 및 누락된 값 채우기
+# # result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# # result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# # result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+
+
+# # # 결과 열 추가
+# # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+
+# # # CSV로 저장
+# # result_df.to_csv('data/one_sender_result.csv', index=False)
+
+
+
+
+# # dfs = []
+
+# # #### 1000 BTC 이상, not loop의 거래
+# # for i in interval:
+# #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+# #     df = pd.read_csv(target, header=None)
+# #     df.columns = column_names
+
+# #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# #     df = filter_not_loop(df)
+
+# #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+
+# # # 모든 데이터프레임을 하나로 결합
+# # full_df = pd.concat(dfs, ignore_index=True)
+
+# # # 날짜별로 데이터 집계
+# # aggregated = full_df.groupby('block_date').agg(
+# #     transaction_count=('transaction_hash', 'nunique'),
+# #     transaction_amount=('receive_amount', 'sum')
+# # ).reset_index()
+
+# # # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# # date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# # date_range = date_range.to_frame(index=False)
+# # date_range.columns = ['date']
+
+# # # 날짜 범위 데이터프레임 생성
+# # date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# # date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # 병합 및 누락된 값 채우기
+# # result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# # result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# # result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+
+
+# # # 결과 열 추가
+# # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+
+# # # CSV로 저장
+# # result_df.to_csv('data/not_loop_result.csv', index=False)
+
+
+
+# # dfs = []
+
+# # #### 1000 BTC 이상, receive amount 1000의 거래
+# # for i in interval:
+# #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+# #     df = pd.read_csv(target, header=None)
+# #     df.columns = column_names
+
+# #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# #     df = filter_threshold(df)
+
+# #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+
+# # # 모든 데이터프레임을 하나로 결합
+# # full_df = pd.concat(dfs, ignore_index=True)
+
+# # # 날짜별로 데이터 집계
+# # aggregated = full_df.groupby('block_date').agg(
+# #     transaction_count=('transaction_hash', 'nunique'),
+# #     transaction_amount=('receive_amount', 'sum')
+# # ).reset_index()
+
+# # # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# # date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# # date_range = date_range.to_frame(index=False)
+# # date_range.columns = ['date']
+
+# # # 날짜 범위 데이터프레임 생성
+# # date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# # date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # 병합 및 누락된 값 채우기
+# # result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# # result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# # result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+
+
+# # # 결과 열 추가
+# # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+
+# # # CSV로 저장
+# # result_df.to_csv('data/receive_amount_1000_result.csv', index=False)
+
+
+
+# # dfs = []
+
+# # #### 1000 BTC 이상, receive amount 3000의 거래
+# # for i in interval:
+# #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+# #     df = pd.read_csv(target, header=None)
+# #     df.columns = column_names
+
+# #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# #     df = filter_threshold(df, 3000)
+
+# #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+
+# # # 모든 데이터프레임을 하나로 결합
+# # full_df = pd.concat(dfs, ignore_index=True)
+
+# # # 날짜별로 데이터 집계
+# # aggregated = full_df.groupby('block_date').agg(
+# #     transaction_count=('transaction_hash', 'nunique'),
+# #     transaction_amount=('receive_amount', 'sum')
+# # ).reset_index()
+
+# # # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# # date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# # date_range = date_range.to_frame(index=False)
+# # date_range.columns = ['date']
+
+# # # 날짜 범위 데이터프레임 생성
+# # date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# # date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # 병합 및 누락된 값 채우기
+# # result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# # result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# # result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+
+
+# # # 결과 열 추가
+# # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+
+# # # CSV로 저장
+# # result_df.to_csv('data/receive_amount_3000_result.csv', index=False)
+
+
+
+# # dfs = []
+
+# # #### 1000 BTC 이상, one sender, not loop의 거래
+# # for i in interval:
+# #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+# #     df = pd.read_csv(target, header=None)
+# #     df.columns = column_names
+
+# #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+# #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+# #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# #     df = filter_one_sender(df)
+# #     df = filter_not_loop(df)
+
+# #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+
+# # # 모든 데이터프레임을 하나로 결합
+# # full_df = pd.concat(dfs, ignore_index=True)
+
+# # # 날짜별로 데이터 집계
+# # aggregated = full_df.groupby('block_date').agg(
+# #     transaction_count=('transaction_hash', 'nunique'),
+# #     transaction_amount=('receive_amount', 'sum')
+# # ).reset_index()
+
+# # # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# # date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# # date_range = date_range.to_frame(index=False)
+# # date_range.columns = ['date']
+
+# # # 날짜 범위 데이터프레임 생성
+# # date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# # date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+# # # 병합 및 누락된 값 채우기
+# # result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# # result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# # result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+
+
+# # # 결과 열 추가
+# # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+
+# # # CSV로 저장
+# # result_df.to_csv('data/one_sender_not_loop_result.csv', index=False)
+
+
+
+# ################# 여기서부터 dfs 없었음
 
 # dfs = []
 
-# #### 1000 BTC 이상의 거래
+
+# #### 1000 BTC 이상, one sender, receive amount 3000의 거래
 # for i in interval:
 #     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
 #     df = pd.read_csv(target, header=None)
@@ -68,6 +382,9 @@ def filter_threshold(df, threshold=1000, target='receive_amount'):
 #     # block_timestamp을 datetime으로 변환 후 날짜만 추출
 #     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
 #     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+
+#     df = filter_one_sender(df)
+#     df = filter_threshold(df, 3000, 'receive_amount')
 
 #     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
@@ -99,390 +416,307 @@ def filter_threshold(df, threshold=1000, target='receive_amount'):
 # result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
 # # CSV로 저장
-# result_df.to_csv('data/over_1000btc_result.csv', index=False)
+# result_df.to_csv('data/one_sender_receive_amount_3000_result.csv', index=False)
 
 
+# dfs = []
 
-dfs = []
+# #### 1000 BTC 이상, receive amount 3000, not loop, one sender의 거래
+# for i in interval:
+#     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+#     df = pd.read_csv(target, header=None)
+#     df.columns = column_names
 
-#### 1000 BTC 이상, one sender filter의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
+#     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+#     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+#     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+#     df = filter_threshold(df, 3000, 'receive_amount')
+#     df = filter_not_loop(df)
+#     df = filter_one_sender(df)
 
-    df = filter_one_sender(df)
+#     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+# # 모든 데이터프레임을 하나로 결합
+# full_df = pd.concat(dfs, ignore_index=True)
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
+# # 날짜별로 데이터 집계
+# aggregated = full_df.groupby('block_date').agg(
+#     transaction_count=('transaction_hash', 'nunique'),
+#     transaction_amount=('receive_amount', 'sum')
+# ).reset_index()
 
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
+# # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# date_range = date_range.to_frame(index=False)
+# date_range.columns = ['date']
 
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
+# # 날짜 범위 데이터프레임 생성
+# date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+# # 병합 및 누락된 값 채우기
+# result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
+# # 결과 열 추가
+# result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+# # CSV로 저장
+# result_df.to_csv('data/every_filter_3000_result.csv', index=False)
 
-# CSV로 저장
-result_df.to_csv('data/one_sender_result.csv', index=False)
 
+# dfs = []
 
 
+# #### 1000 BTC 이상, one sender, receive amount 1000의 거래
+# for i in interval:
+#     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+#     df = pd.read_csv(target, header=None)
+#     df.columns = column_names
 
-dfs = []
+#     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+#     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+#     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-#### 1000 BTC 이상, not loop의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
+#     df = filter_one_sender(df)
+#     df = filter_threshold(df, 1000, 'receive_amount')
+#     df = filter_not_loop(df)
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+#     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-    df = filter_not_loop(df)
+# # 모든 데이터프레임을 하나로 결합
+# full_df = pd.concat(dfs, ignore_index=True)
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+# # 날짜별로 데이터 집계
+# aggregated = full_df.groupby('block_date').agg(
+#     transaction_count=('transaction_hash', 'nunique'),
+#     transaction_amount=('receive_amount', 'sum')
+# ).reset_index()
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
+# # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# date_range = date_range.to_frame(index=False)
+# date_range.columns = ['date']
 
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
+# # 날짜 범위 데이터프레임 생성
+# date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
+# # 병합 및 누락된 값 채우기
+# result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+# # 결과 열 추가
+# result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
+# # CSV로 저장
+# result_df.to_csv('data/every_filter_1000_result.csv', index=False)
 
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
-# CSV로 저장
-result_df.to_csv('data/not_loop_result.csv', index=False)
 
 
 
-dfs = []
 
-#### 1000 BTC 이상, receive amount 1000의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+# dfs = []
 
-    df = filter_threshold(df)
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+# #### 1000 BTC 이상, receive amount 10000의 거래
+# for i in interval:
+#     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+#     df = pd.read_csv(target, header=None)
+#     df.columns = column_names
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
+#     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+#     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+#     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
+#     df = filter_threshold(df, 10000, 'receive_amount')
 
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
+#     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+# # 모든 데이터프레임을 하나로 결합
+# full_df = pd.concat(dfs, ignore_index=True)
 
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+# # 날짜별로 데이터 집계
+# aggregated = full_df.groupby('block_date').agg(
+#     transaction_count=('transaction_hash', 'nunique'),
+#     transaction_amount=('receive_amount', 'sum')
+# ).reset_index()
 
+# # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# date_range = date_range.to_frame(index=False)
+# date_range.columns = ['date']
 
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+# # 날짜 범위 데이터프레임 생성
+# date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# CSV로 저장
-result_df.to_csv('data/receive_amount_1000_result.csv', index=False)
+# # 병합 및 누락된 값 채우기
+# result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
 
+# # 결과 열 추가
+# result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
-dfs = []
+# # CSV로 저장
+# result_df.to_csv('data/receive_amount_10000_result.csv', index=False)
 
-#### 1000 BTC 이상, receive amount 3000의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
+# dfs = []
 
-    df = filter_threshold(df, 3000)
+# #### 1000 BTC 이상, receive amount 10000, one sender의 거래
+# for i in interval:
+#     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+#     df = pd.read_csv(target, header=None)
+#     df.columns = column_names
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+#     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+#     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+#     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
+#     df = filter_threshold(df, 10000, 'receive_amount')
+#     df = filter_one_sender(df)
 
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
+#     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
+# # 모든 데이터프레임을 하나로 결합
+# full_df = pd.concat(dfs, ignore_index=True)
 
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+# # 날짜별로 데이터 집계
+# aggregated = full_df.groupby('block_date').agg(
+#     transaction_count=('transaction_hash', 'nunique'),
+#     transaction_amount=('receive_amount', 'sum')
+# ).reset_index()
 
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+# # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# date_range = date_range.to_frame(index=False)
+# date_range.columns = ['date']
 
+# # 날짜 범위 데이터프레임 생성
+# date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+# # 병합 및 누락된 값 채우기
+# result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
-# CSV로 저장
-result_df.to_csv('data/receive_amount_3000_result.csv', index=False)
 
+# # 결과 열 추가
+# result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
+# # CSV로 저장
+# result_df.to_csv('data/one_sender_receive_amount_10000_result.csv', index=False)
 
-dfs = []
 
-#### 1000 BTC 이상, one sender, not loop의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
+# dfs = []
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-    df = filter_one_sender(df)
-    df = filter_not_loop(df)
+# #### 1000 BTC 이상, not loop, receive amount 10000의 거래
+# for i in interval:
+#     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+#     df = pd.read_csv(target, header=None)
+#     df.columns = column_names
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+#     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+#     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+#     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
+#     df = filter_threshold(df, 10000, 'receive_amount')
+#     df = filter_not_loop(df)
 
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
+#     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
+# # 모든 데이터프레임을 하나로 결합
+# full_df = pd.concat(dfs, ignore_index=True)
 
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+# # 날짜별로 데이터 집계
+# aggregated = full_df.groupby('block_date').agg(
+#     transaction_count=('transaction_hash', 'nunique'),
+#     transaction_amount=('receive_amount', 'sum')
+# ).reset_index()
 
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+# # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# date_range = date_range.to_frame(index=False)
+# date_range.columns = ['date']
 
+# # 날짜 범위 데이터프레임 생성
+# date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+# # 병합 및 누락된 값 채우기
+# result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
-# CSV로 저장
-result_df.to_csv('data/one_sender_not_loop_result.csv', index=False)
 
+# # 결과 열 추가
+# result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
+# # CSV로 저장
+# result_df.to_csv('data/not_loop_10000_result.csv', index=False)
 
-#### 1000 BTC 이상, one sender, receive amount 3000의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-    df = filter_one_sender(df)
-    df = filter_threshold(df, 3000, 'receive_amount')
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
+# dfs = []
 
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
 
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
+# #### 1000 BTC 이상, every filter receive amount 10000의 거래
+# for i in interval:
+#     target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
+#     df = pd.read_csv(target, header=None)
+#     df.columns = column_names
 
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
+#     # block_timestamp을 datetime으로 변환 후 날짜만 추출
+#     df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
+#     df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+#     df = filter_one_sender(df)
+#     df = filter_threshold(df, 100000, 'receive_amount')
+#     df = filter_not_loop(df)
 
+#     dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
 
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
+# # 모든 데이터프레임을 하나로 결합
+# full_df = pd.concat(dfs, ignore_index=True)
 
-# CSV로 저장
-result_df.to_csv('data/one_sender_receive_amount_3000_result.csv', index=False)
+# # 날짜별로 데이터 집계
+# aggregated = full_df.groupby('block_date').agg(
+#     transaction_count=('transaction_hash', 'nunique'),
+#     transaction_amount=('receive_amount', 'sum')
+# ).reset_index()
 
+# # 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
+# date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
+# date_range = date_range.to_frame(index=False)
+# date_range.columns = ['date']
 
+# # 날짜 범위 데이터프레임 생성
+# date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
+# date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-#### 1000 BTC 이상, receive amount 3000, not loop, one sender의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
+# # 병합 및 누락된 값 채우기
+# result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
+# result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
+# result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
 
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
 
-    df = filter_threshold(df, 3000, 'receive_amount')
-    df = filter_not_loop(df)
-    df = filter_one_sender(df)
+# # 결과 열 추가
+# result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
+# # CSV로 저장
+# result_df.to_csv('data/every_filter_10000_result.csv', index=False)
 
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
-
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
-
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
-
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
-
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
-
-
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
-
-# CSV로 저장
-result_df.to_csv('data/every_filter_3000_result.csv', index=False)
-
-
-
-
-#### 1000 BTC 이상, one sender, receive amount 1000의 거래
-for i in interval:
-    target = f'data/transaction/bitcoin_big_transaction_raw/transactions_0000000000{i}.csv'
-    df = pd.read_csv(target, header=None)
-    df.columns = column_names
-
-    # block_timestamp을 datetime으로 변환 후 날짜만 추출
-    df['block_date'] = pd.to_datetime(df['block_timestamp']).dt.date
-    df['block_date'] = df['block_date'].apply(lambda x: x.strftime('%Y%m%d'))
-
-    df = filter_one_sender(df)
-    df = filter_threshold(df, 1000, 'receive_amount')
-    df = filter_not_loop(df)
-
-    dfs.append(df[['block_date', 'transaction_hash', 'receive_amount']])
-
-# 모든 데이터프레임을 하나로 결합
-full_df = pd.concat(dfs, ignore_index=True)
-
-# 날짜별로 데이터 집계
-aggregated = full_df.groupby('block_date').agg(
-    transaction_count=('transaction_hash', 'nunique'),
-    transaction_amount=('receive_amount', 'sum')
-).reset_index()
-
-# 2015년 1월 1일부터 2024년 11월 19일까지의 날짜를 인덱스로 가지는 DataFrame 생성
-date_range = pd.date_range(start='2015-01-01', end='2024-11-19')
-date_range = date_range.to_frame(index=False)
-date_range.columns = ['date']
-
-# 날짜 범위 데이터프레임 생성
-date_range = pd.DataFrame({'date': pd.date_range(start='2015-01-01', end='2024-11-19')})
-date_range['date'] = date_range['date'].apply(lambda x: x.strftime('%Y%m%d'))
-
-# 병합 및 누락된 값 채우기
-result_df = date_range.merge(aggregated, left_on='date', right_on='block_date', how='left').drop(columns='block_date')
-result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
-result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
-
-
-# 결과 열 추가
-result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
-
-# CSV로 저장
-result_df.to_csv('data/every_filter_1000_result.csv', index=False)
