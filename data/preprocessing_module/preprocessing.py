@@ -36,12 +36,16 @@ def filter_threshold(df, threshold=1000, target='receive_amount'):
 
     return result
 
+
+'''preprocessing.csv'''
+
+### test_transaction 업데이트 먼저 하고 진행
 pd.set_option('display.max_columns', None)
-test_df = pd.read_csv('data/transaction/test.csv')
+test_df = pd.read_csv('data/test/test_transaction_241208.csv')
 test_df['block_datetime'] = test_df['block_timestamp'].apply(lambda x: x[:-4])
 
 # 2015년 1월 1일부터 2024년 11월 19일까지의 시간(초)를 인덱스로 가지는 DataFrame 생성
-time_range = pd.date_range(start='2021-10-01', end='2021-11-01', freq='S').astype(str)
+time_range = pd.date_range(start='2021-01-01', end='2022-01-01', freq='S').astype(str)
 time_range = time_range.to_frame(index=False)
 time_range.columns = ['block_datetime']
 
@@ -55,9 +59,11 @@ aggregated = test_df.groupby('block_datetime').agg(
 result_df = time_range.merge(aggregated, left_on='block_datetime', right_on='block_datetime', how='left')
 result_df['transaction_count'] = result_df['transaction_count'].fillna(0).astype(int)
 result_df['transaction_amount'] = result_df['transaction_amount'].fillna(0)
+result_df['transaction_flag'] = result_df['transaction_count'].apply(lambda x: 1 if x > 0 else 0)
 result_df = result_df.iloc[:-1, :]
 
-result_df.to_csv('data/test_target.csv', index=False)
+result_df.to_csv('data/test/test_processing_1208.csv', index=False)
+
 
 
 # # # target = 'data/transaction/bitcoin_big_transaction_raw/transactions_000000000040.csv'
