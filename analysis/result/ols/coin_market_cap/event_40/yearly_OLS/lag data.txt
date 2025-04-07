@@ -1,0 +1,15 @@
+# Independent, Dependent 분리
+y = test_df['returns'].shift(-5).fillna(test_df['returns'].mean())
+X = test_df[['target_returns', 'target', 'event_flag', 'vpin', 'volume', 'returns', 'rv', 'n-transactions']]
+X['target_returns'] = X['target_returns'].shift(-2).fillna(method='ffill')
+X['event_flag'] = X['event_flag'].shift(-3).fillna(0)
+X['target_event'] = X['target'] * X['event_flag']
+X['target_event'] = X['target_event'].shift(-2).fillna(0)
+X['vpin'] = X['vpin'].shift(-1).fillna(X['vpin'].mean())
+X['returns'] = X['returns'].shift(-4).fillna(X['returns'].mean())
+X['volume'] = X['volume'].shift(-2).fillna(X['volume'].mean())
+X['rv'] = X['rv'].shift(-1).fillna(X['rv'].mean())
+X['target'] = X['target'].shift(0).fillna(X['target'].mean())
+X['n-transactions'] = X['n-transactions'].shift(-2).fillna(X['n-transactions'].mean())
+X = X[['target_event', 'target_returns', 'vpin', 'volume', 'returns', 'rv', 'n-transactions']]
+# , , 'vpin', 'volume', 'returns', 'rv',
