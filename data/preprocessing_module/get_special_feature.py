@@ -130,7 +130,7 @@ def get_chart_data(chart_name, start: str, timespan:str='1year'):
 # print(df)
 
 
-url = 'https://api.blockchain.info/charts/n-payments-per-block?timespan=1year&sampled=true&start=2018-01-01&metadata=false&daysAverageString=1d&cors=true&format=json'
+# url = 'https://api.blockchain.info/charts/n-payments-per-block?timespan=1year&sampled=true&start=2018-01-01&metadata=false&daysAverageString=1d&cors=true&format=json'
 # url = 'https://api.blockchain.info/charts/avg-confirmation-time?timespan=1year&sampled=true&start=2016-01-01&metadata=false&daysAverageString=1d&cors=true&format=json'
 # url = 'https://api.blockchain.info/charts/fees-usd-per-transaction?timespan=1year&sampled=true&start=2009-01-01&metadata=false&daysAverageString=1d&cors=true&format=json'
 # url = 'https://api.blockchain.info/charts/cost-per-transaction-percent?timespan=1year&sampled=true&start=2010-01-01&metadata=false&daysAverageString=1d&cors=true&format=json'

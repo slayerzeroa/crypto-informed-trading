@@ -239,8 +239,8 @@ def main(target_year:int):
 
     ## 여기는 ipynb로 진행해야 할 수도 있음
     # 5단계: feature 생성하기
-    target_df = pd.read_csv(f'data/test/target/test_target_{target_year}_{today_date}.csv')
-    daily_price_df = pd.read_csv(f'data/test/price/daily/test_daily_price_{target_year}.csv')
+    target_df = pd.read_csv(f'data/test_data/target/test_target_{target_year}_{today_date}.csv')
+    daily_price_df = pd.read_csv(f'data/test_data/price/daily/test_daily_price_{target_year}.csv')
     target_df['date'] = target_df['date'].astype(str).apply(lambda x: x[:4] + '-' + x[4:6] + '-' + x[6:])
 
 

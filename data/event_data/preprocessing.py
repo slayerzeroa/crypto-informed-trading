@@ -2,7 +2,7 @@ import pandas as pd
 import glob
 import os
 
-csv_file = 'data/event_data/bitcoin_events_final_updated.csv'
+csv_file = './data/event_data/final/bitcoin_event_details_sentiment_250323.csv'
 df = pd.read_csv(csv_file, parse_dates=['Date'])
 print("원본 데이터프레임:")
 print(df.head())
@@ -25,10 +25,10 @@ event_dates = df['Date'].dt.normalize()
 # 이벤트 표시
 event_df['Event'] = event_df.index.isin(event_dates).astype(int)
 
-event_df.to_csv("bitcoin_events.csv")
+event_df.to_csv("./data/event_data/bitcoin_events_flag_250324.csv")
 
-# total_events = event_df['Event'].sum()
-# print(f"총 이벤트 수: {total_events}")
+total_events = event_df['Event'].sum()
+print(f"총 이벤트 수: {total_events}")
 
 # # 특정 날짜 예시
 # specific_date = '2020-05-15'
@@ -38,3 +38,12 @@ event_df.to_csv("bitcoin_events.csv")
 # output_file = 'data/event_data/bitcoin_event_binary.csv'
 # event_df.to_csv(output_file, encoding='utf-8-sig')
 # print(f"이벤트 데이터가 '{output_file}' 파일로 저장되었습니다.")
+
+
+# df = pd.read_csv('./data/event_data/bitcoin_event_detail_no_explain.csv')
+# print(df)
+
+# df = df[df['predict']==1]
+# print(len(df))
+
+# df.to_csv('./data/event_data/bitcoin_event_preprocessed_250312.csv', index=False)

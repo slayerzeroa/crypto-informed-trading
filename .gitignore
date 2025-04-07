@@ -1,3 +1,14 @@
 *.csv
 *.zip
 *.parquet
+*.pyc
+*.json
+*.log
+*.pak
+*.dll
+data/twitter_data/twitter_scraping_module
+data/chrome-win64
+*.log
+*.hyb
+*.pb
+*.js
