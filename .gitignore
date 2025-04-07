@@ -12,3 +12,4 @@ data/chrome-win64
 *.hyb
 *.pb
 *.js
+data/twitter_data/twitter_scraping_module/selenium-twitter-scraper
